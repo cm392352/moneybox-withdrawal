@@ -24,6 +24,8 @@ namespace Moneybox.App.Features
             //This isn't great, but considering we're using a UseCase style model (Feature) it is at least encapsulated in one method. 
             ValidateWithdrawMoney(withdrawalAccount, amount);
             withdrawalAccount.WithdrawMoney(amount);
+            
+            accountRepository.Update(withdrawalAccount);
         }
 
         private void ValidateWithdrawMoney(Account from, decimal amount)
