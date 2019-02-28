@@ -20,6 +20,8 @@ namespace Moneybox.App.Features
             var from = this.accountRepository.GetAccountById(fromAccountId);
             var to = this.accountRepository.GetAccountById(toAccountId);
 
+            //var result = from.SendMoney(amount, to);
+
             var fromBalance = from.Balance - amount;
             if (fromBalance < 0m)
             {

@@ -15,5 +15,10 @@ namespace Moneybox.App
         public decimal Withdrawn { get; set; }
 
         public decimal PaidIn { get; set; }
+
+        public void SendMoney(decimal amount, Account destinationAccount)
+        {
+
+        }
     }
 }
