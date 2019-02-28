@@ -17,20 +17,36 @@ namespace Moneybox.App.Features
 
         public void Execute(Guid fromAccountId, Guid toAccountId, decimal amount)
         {
-            var from = this.accountRepository.GetAccountById(fromAccountId);
-            var to = this.accountRepository.GetAccountById(toAccountId);
+            var from = accountRepository.GetAccountById(fromAccountId);
+            var to = accountRepository.GetAccountById(toAccountId);
 
-            //var result = from.SendMoney(amount, to);
+            //Ive introduced a sequence dependency on these two methods, since we assume that validation has been called before 
+            //from.SentMoneyToAccount. 
+            //This isn't great, but considering we're using a UseCase style model (Feature) it is at least encapsulated in one method. 
+            ValidateTransferMoney(from, to, amount);
+            from.SendMoneyToAccount(amount, to, notificationService);
+            
+            // This should be refactored to support a transaction so that the  operation is atomic. 
+            accountRepository.Update(from);
+            accountRepository.Update(to);
+        }
 
-            var fromBalance = from.Balance - amount;
-            if (fromBalance < 0m)
+        private void ValidateTransferMoney(Account from, Account to, decimal amount)
+        {
+
+            if(amount < 0)
+            {
+                throw new InvalidOperationException("You cannot make a negative value money transfer");
+            }
+
+            if (from.Balance < amount)
             {
                 throw new InvalidOperationException("Insufficient funds to make transfer");
             }
 
-            if (fromBalance < 500m)
+            if ((from.Balance - amount) < Account.NotifyFundsLowThreshold)
             {
-                this.notificationService.NotifyFundsLow(from.User.Email);
+                notificationService.NotifyFundsLow(from.User.Email);
             }
 
             var paidIn = to.PaidIn + amount;
@@ -39,19 +55,10 @@ namespace Moneybox.App.Features
                 throw new InvalidOperationException("Account pay in limit reached");
             }
 
-            if (Account.PayInLimit - paidIn < 500m)
+            if (Account.PayInLimit - paidIn < Account.NotifyApproachingPayInLimitThreshold)
             {
-                this.notificationService.NotifyApproachingPayInLimit(to.User.Email);
+                notificationService.NotifyApproachingPayInLimit(to.User.Email);
             }
-
-            from.Balance = from.Balance - amount;
-            from.Withdrawn = from.Withdrawn - amount;
-
-            to.Balance = to.Balance + amount;
-            to.PaidIn = to.PaidIn + amount;
-
-            this.accountRepository.Update(from);
-            this.accountRepository.Update(to);
         }
     }
 }

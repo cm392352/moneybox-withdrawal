@@ -28,15 +28,26 @@ namespace Moneybox.App.Tests
         private TransferMoney SetupTransferMoney(decimal originatingBalance, decimal destinationBalance)
         {
             var originatingAccountUser = new User { Id = originatingUserId, Email = "originating@user.com", Name = "Originating User" };
-            var originatingAccount = new Account { Id = originatingAccountId, Balance = originatingBalance, User = originatingAccountUser };
+            var originatingAccount = new Account(originatingBalance) { Id = originatingAccountId, User = originatingAccountUser };
 
             var destinationAccountUser = new User { Id = destinationUserId, Email = "destination@user.com", Name = "Destination User" };
-            var destinationAccount = new Account { Id = destinationAccountId, Balance = destinationBalance, User = destinationAccountUser };
+            var destinationAccount = new Account(destinationBalance) { Id = destinationAccountId, User = destinationAccountUser };
 
             accountRepository.GetAccountById(originatingAccountId).Returns(originatingAccount);
             accountRepository.GetAccountById(destinationAccountId).Returns(destinationAccount);
 
             return new TransferMoney(accountRepository, notificationService);
+        }
+
+        [Fact]
+        public void ThrowExceptionIfNegativeTransferAttempted()
+        {
+            //Arrange
+            var transferMoney = SetupTransferMoney(500m, 500m);
+            //Act
+            Action action = () => transferMoney.Execute(originatingAccountId, destinationAccountId, -400m);
+            //Assert
+            Assert.Throws<InvalidOperationException>(action);
         }
 
         [Fact]
